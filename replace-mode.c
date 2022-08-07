@@ -4,8 +4,44 @@
 /* EXIT_SUCCESS EXIT_FAILURE strtol strtoll */
 #include <stdlib.h>
 
+#include <regex.h>
+
 /* setlocale */
 /* #include <locale.h> */
+
+/* TODO: expand, wc -m */
+
+/*
+ * >0 found
+ * =0 not found
+ * <0 error
+*/
+int
+regex_string(char *target, char *string)
+{
+    regex_t regex;
+    int return_value = -1;
+    int reti = regcomp(&regex, target, REG_EXTENDED);
+    /* int reti = regcomp(&regex, target, 0); */
+    if (reti) {
+        fprintf(stderr, "error: could not compile regex\n");
+        return_value = -2;
+    } else {
+        reti = regexec(&regex, string, 0, NULL, 0);
+        if (!reti) {
+            return_value = 1;
+        }
+        else if (reti == REG_NOMATCH) {
+            return_value = 0;
+        }
+        else {
+            fprintf(stderr, "error: regex match failed\n");
+            return_value = -3;
+        }
+    }
+    regfree(&regex);
+    return return_value;
+}
 
 struct kakoune_options {
     int tabstop;
@@ -36,6 +72,13 @@ free_kakoune_options(struct kakoune_options *kakoune)
 }
 
 void
+free_kakoune_exit(struct kakoune_options *kakoune, int exit_status)
+{
+    free_kakoune_options(kakoune);
+    exit(exit_status);
+}
+
+void
 set_kakoune_string(
     int argc,
     char *argv[],
@@ -46,20 +89,21 @@ set_kakoune_string(
 {
     if (*i >= argc) {
         fprintf(stderr, "error: out of bound\n");
-        free_kakoune_options(kakoune);
-        exit(EXIT_FAILURE);
+        free_kakoune_exit(kakoune, EXIT_FAILURE);
     }
     char *param = argv[*i];
     if (*i + 1 < argc) {
         (*i)++;
         int len_param = strlen(param);
+        if (*option != NULL) {
+            free(*option);
+        }
         *option = malloc(len_param + 1);
         (*option)[len_param] = '\0';
         strcpy(*option, argv[*i]);
     } else {
         fprintf(stderr, "error: string %s not specified\n", param);
-        free_kakoune_options(kakoune);
-        exit(EXIT_FAILURE);
+        free_kakoune_exit(kakoune, EXIT_FAILURE);
     }
 }
 
@@ -74,8 +118,7 @@ set_kakoune_int(
 {
     if (*i >= argc) {
         fprintf(stderr, "error: out of bound\n");
-        free_kakoune_options(kakoune);
-        exit(EXIT_FAILURE);
+        free_kakoune_exit(kakoune, EXIT_FAILURE);
     }
     if (*i + 1 < argc) {
         (*i)++;
@@ -83,8 +126,7 @@ set_kakoune_int(
         *option = (int) strtol(argv[*i], (char **)NULL, 10);
     } else {
         fprintf(stderr, "error: int %s not specified\n", argv[*i]);
-        free_kakoune_options(kakoune);
-        exit(EXIT_FAILURE);
+        free_kakoune_exit(kakoune, EXIT_FAILURE);
     }
 }
 
@@ -131,7 +173,38 @@ print_kakoune_options(struct kakoune_options *kakoune)
 void
 first_operation(struct kakoune_options *kakoune)
 {
-    printf("starting first operation\n");
+    if (kakoune->hook_param == NULL) {
+        fprintf(stderr, "error: hook-param is null\n");
+        free_kakoune_exit(kakoune, EXIT_FAILURE);
+    }
+    /* int difference = 1; */
+    if (strcmp(kakoune->hook_param, "<esc>") == 0) {
+        printf("\
+change-colors-change-mode-true        \n\
+set-normal-colors                     \n\
+remove-hooks window replace-hook      \n\
+");
+        return;
+    } else if (regex_string(
+        "^<(((a|c)-.)|(backspace)|(del)|(tab))>$",
+        kakoune->hook_param
+    ) > 0) {
+/*
+        prev_len="$(
+            printf "%s" \
+                "$kak_opt_replace_hook_prev_line" |
+            expand -t "$kak_opt_tabstop" |
+            wc -m
+        )"
+        curr_len="$(
+            printf "%s" \
+                "$kak_opt_replace_hook_curr_line" |
+            expand -t "$kak_opt_tabstop" |
+            wc -m
+        )"
+        difference_len="$(( curr_len - prev_len ))"
+*/
+    }
 }
 
 void
@@ -186,11 +259,10 @@ int main (int argc, char *argv[])
             set_kakoune_string(argc, argv, &i, &kakoune.previous_line, &kakoune);
         } else {
             fprintf(stderr, "error: %s not recognized\n", param);
-            free_kakoune_options(&kakoune);
-            return EXIT_FAILURE;
+            free_kakoune_exit(&kakoune, EXIT_FAILURE);
         }
     }
-    print_kakoune_options(&kakoune);
+    /* print_kakoune_options(&kakoune); */
     switch (operation) {
         case 1:
             first_operation(&kakoune);
@@ -203,9 +275,7 @@ int main (int argc, char *argv[])
             break;
         default:
             fprintf(stderr, "error: no operation specified\n");
-            free_kakoune_options(&kakoune);
-            return EXIT_FAILURE;
+            free_kakoune_exit(&kakoune, EXIT_FAILURE);
     }
-    free_kakoune_options(&kakoune);
-    return EXIT_SUCCESS;
+    free_kakoune_exit(&kakoune, EXIT_SUCCESS);
 }
