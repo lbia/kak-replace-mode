@@ -1,13 +1,9 @@
 #include <stdio.h>
 #include <string.h>
-
-/* EXIT_SUCCESS EXIT_FAILURE strtol strtoll */
 #include <stdlib.h>
-
 #include <regex.h>
 
-/* setlocale */
-/* #include <locale.h> */
+/* FILE *file; */
 
 /*
 >0 found
@@ -146,18 +142,22 @@ set_kakoune_string(
         fprintf(stderr, "error: out of bound\n");
         free_kakoune_exit(kakoune, EXIT_FAILURE);
     }
-    char *param = argv[*i];
     if (*i + 1 < argc) {
         (*i)++;
-        int len_param = strlen(param);
         if (*option != NULL) {
             free(*option);
         }
-        *option = malloc(len_param + 1);
-        (*option)[len_param] = '\0';
-        strcpy(*option, argv[*i]);
+        char *param = argv[*i];
+        int len_param = strlen(param);
+        if (len_param > 0) {
+            *option = malloc(len_param + 1);
+            (*option)[len_param] = '\0';
+            strcpy(*option, argv[*i]);
+        } else {
+            *option = NULL;
+        }
     } else {
-        fprintf(stderr, "error: string %s not specified\n", param);
+        fprintf(stderr, "error: string %s not specified\n", argv[*i]);
         free_kakoune_exit(kakoune, EXIT_FAILURE);
     }
 }
@@ -186,43 +186,43 @@ set_kakoune_int(
 }
 
 void
-print_kakoune_options(struct kakoune_options *kakoune)
+print_kakoune_options(FILE *stream, struct kakoune_options *kakoune)
 {
-    printf("tabstop:            ");
+    fprintf(stream, "tabstop:            ");
     if (kakoune->tabstop >= 0) {
-        printf("%d", kakoune->tabstop);
+        fprintf(stream, "%d", kakoune->tabstop);
     }
-    printf("\n");
-    printf("cursor-char-column: ");
+    fprintf(stream, "\n");
+    fprintf(stream, "cursor-char-column: ");
     if (kakoune->cursor_char_column >= 0) {
-        printf("%d", kakoune->cursor_char_column);
+        fprintf(stream, "%d", kakoune->cursor_char_column);
     }
-    printf("\n");
-    printf("difference:         ");
+    fprintf(stream, "\n");
+    fprintf(stream, "difference:         ");
     if (kakoune->difference >= 0) {
-        printf("%d", kakoune->difference);
+        fprintf(stream, "%d", kakoune->difference);
     }
-    printf("\n");
-    printf("hook-param:         ");
+    fprintf(stream, "\n");
+    fprintf(stream, "hook-param:         ");
     if (kakoune->hook_param) {
-        printf("%s", kakoune->hook_param);
+        fprintf(stream, "%s", kakoune->hook_param);
     }
-    printf("\n");
-    printf("char-selection:     ");
+    fprintf(stream, "\n");
+    fprintf(stream, "char-selection:     ");
     if (kakoune->char_selection) {
-        printf("%s", kakoune->char_selection);
+        fprintf(stream, "%s", kakoune->char_selection);
     }
-    printf("\n");
-    printf("current-line:       ");
+    fprintf(stream, "\n");
+    fprintf(stream, "current-line:       ");
     if (kakoune->current_line) {
-        printf("%s", kakoune->current_line);
+        fprintf(stream, "%s", kakoune->current_line);
     }
-    printf("\n");
-    printf("previous-line:      ");
+    fprintf(stream, "\n");
+    fprintf(stream, "previous-line:      ");
     if (kakoune->previous_line) {
-        printf("%s", kakoune->previous_line);
+        fprintf(stream, "%s", kakoune->previous_line);
     }
-    printf("\n");
+    fprintf(stream, "\n");
 }
 
 void
@@ -376,18 +376,19 @@ try %%{                            \n\
                 strcat(execute_key, execute_key_space);
             }
             strcat(execute_key, execute_key_end);
-            free(execute_key);
             printf("\
 %s                                       \n\
 try %%{                                  \n\
     execute-keys -draft 's\n<ret>'       \n\
 } catch %%{                              \n\
-    execute-keys -draft '${execute_key}' \n\
+    execute-keys -draft '%s'             \n\
     execute-keys -draft 'r<space>'       \n\
 }                                        \n\
 ",
-                check_new_line
+                check_new_line,
+                execute_key
             );
+            free(execute_key);
         }
     } else if (strcmp(kakoune->hook_param, "<backspace>") == 0) {
         if (kakoune->difference < 0) {
@@ -440,6 +441,23 @@ main (int argc, char *argv[])
         NULL,
     };
 
+    /*
+    char *home_env = getenv("HOME");
+    if (!home_env) {
+        fprintf(stderr, "HOME not set\n");
+        free_kakoune_exit(&kakoune, EXIT_FAILURE);
+    }
+    char relative_file[] = "/replace-mode-c-out";
+    char *file_path = (char *)malloc(sizeof(char) * (
+        strlen(home_env) + strlen(relative_file)
+    ));
+    file_path[0] = '\0';
+    strcat(file_path, home_env);
+    strcat(file_path, relative_file);
+    file = fopen(file_path, "w");
+    free(file_path);
+    */
+
     operation = 0;
     for (i = 1; i < argc; i++) {
         char *param = argv[i];
@@ -482,7 +500,8 @@ main (int argc, char *argv[])
             free_kakoune_exit(&kakoune, EXIT_FAILURE);
         }
     }
-    /* print_kakoune_options(&kakoune); */
+    /* print_kakoune_options(file, &kakoune); */
+    /* fclose(file); */
     check_kakoune_not_null(&kakoune);
     switch (operation) {
         case 1:

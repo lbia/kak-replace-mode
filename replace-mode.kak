@@ -95,11 +95,12 @@ declare-option -hidden int replace_hook_difference
 define-command add-replace-hook -docstring "add replace hook" %{
     change-colors-change-mode-false
     set-replace-colors
+    update-replace-hook-char
     update-replace-hook-prev-line
     hook -group replace-hook window InsertKey .* %{
         update-replace-hook-curr-line
         evaluate-commands %sh{
-            $replace_mode_bin_path -1 \
+            $kak_opt_replace_mode_bin_path -1 \
                 --tabstop "$kak_opt_tabstop" \
                 --cursor-char-column "$kak_cursor_char_column" \
                 --difference "$kak_opt_replace_hook_difference" \
@@ -110,7 +111,7 @@ define-command add-replace-hook -docstring "add replace hook" %{
         }
         update-replace-hook-char
         evaluate-commands %sh{
-            $replace_mode_bin_path -2 \
+            $kak_opt_replace_mode_bin_path -2 \
                 --tabstop "$kak_opt_tabstop" \
                 --cursor-char-column "$kak_cursor_char_column" \
                 --difference "$kak_opt_replace_hook_difference" \
@@ -121,7 +122,7 @@ define-command add-replace-hook -docstring "add replace hook" %{
         }
         update-replace-hook-curr-line
         evaluate-commands %sh{
-            $replace_mode_bin_path -3 \
+            $kak_opt_replace_mode_bin_path -3 \
                 --tabstop "$kak_opt_tabstop" \
                 --cursor-char-column "$kak_cursor_char_column" \
                 --difference "$kak_opt_replace_hook_difference" \

@@ -1,0 +1,20 @@
+#!/bin/sh
+
+kak_opt_replace_mode_bin_path="./replace-mode"
+
+kak_opt_tabstop=4
+kak_cursor_char_column=2
+kak_opt_replace_hook_difference=1
+kak_hook_param="c"
+kak_opt_replace_hook_char="i"
+kak_opt_replace_hook_curr_line="cicao\n"
+kak_opt_replace_hook_prev_line="ciao\n"
+
+$kak_opt_replace_mode_bin_path -1 \
+    --tabstop "$kak_opt_tabstop" \
+    --cursor-char-column "$kak_cursor_char_column" \
+    --difference "$kak_opt_replace_hook_difference" \
+    --hook-param "$kak_hook_param" \
+    --char-selection "$kak_opt_replace_hook_char" \
+    --current-line "$kak_opt_replace_hook_curr_line" \
+    --previous-line "$kak_opt_replace_hook_prev_line"
