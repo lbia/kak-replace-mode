@@ -11,7 +11,7 @@
 <0 error
 */
 int
-regex_string(const char *target, const char *string)
+regex_string(const char *const target, const char *const string)
 {
     regex_t regex;
     int return_value = -1;
@@ -38,7 +38,7 @@ regex_string(const char *target, const char *string)
 }
 
 void
-increment_realloc(char **string, int *size, int *index)
+increment_realloc(char **const string, int *const size, int *const index)
 {
     (*index)++;
     if (*index >= *size) {
@@ -52,8 +52,11 @@ column_init == 0 expand -t {tabsize}
 column_init != 0 expand -t {column_init},+{tabsize}
 */
 char *
-expand_tab(const char *original, int tabsize, int column_init)
-{
+expand_tab(
+    const char *const original,
+    const int tabsize,
+    const int column_init
+) {
     int original_len = strlen(original);
     int expand_len = 2 * original_len;
     char *expand = (char *)malloc(expand_len);
@@ -67,7 +70,7 @@ expand_tab(const char *original, int tabsize, int column_init)
         if (original[o] != '\t') {
             expand[e] = original[o];
         } else {
-            int current_tab =
+            const int current_tab =
                 tabsize - (e + tabsize - column_init) % tabsize;
             int space;
             for (space = 0; space < current_tab - 1; space++) {
@@ -93,7 +96,7 @@ struct kakoune_options {
 };
 
 void
-free_kakoune_options(struct kakoune_options *kakoune)
+free_kakoune_options(struct kakoune_options *const kakoune)
 {
     if (kakoune->hook_param) {
         free(kakoune->hook_param);
@@ -110,14 +113,16 @@ free_kakoune_options(struct kakoune_options *kakoune)
 }
 
 void
-free_kakoune_exit(struct kakoune_options *kakoune, int exit_status)
-{
+free_kakoune_exit(
+    struct kakoune_options *const kakoune,
+    const int exit_status
+) {
     free_kakoune_options(kakoune);
     exit(exit_status);
 }
 
 void
-check_kakoune_not_null(struct kakoune_options *kakoune)
+check_kakoune_not_null(struct kakoune_options *const kakoune)
 {
     if (
         kakoune->hook_param == NULL ||
@@ -133,9 +138,9 @@ void
 set_kakoune_string(
     int argc,
     char *argv[],
-    unsigned int *i,
-    char **option,
-    struct kakoune_options *kakoune
+    unsigned int *const i,
+    char **const option,
+    struct kakoune_options *const kakoune
 )
 {
     if (*i >= argc) {
@@ -147,8 +152,8 @@ set_kakoune_string(
         if (*option != NULL) {
             free(*option);
         }
-        char *param = argv[*i];
-        int len_param = strlen(param);
+        const char *param = argv[*i];
+        const int len_param = strlen(param);
         if (len_param > 0) {
             *option = malloc(len_param + 1);
             (*option)[len_param] = '\0';
@@ -166,9 +171,9 @@ void
 set_kakoune_int(
     int argc,
     char *argv[],
-    unsigned int *i,
-    int *option,
-    struct kakoune_options *kakoune
+    unsigned int *const i,
+    int *const option,
+    struct kakoune_options *const kakoune
 )
 {
     if (*i >= argc) {
@@ -186,7 +191,7 @@ set_kakoune_int(
 }
 
 void
-print_kakoune_options(FILE *stream, struct kakoune_options *kakoune)
+print_kakoune_options(FILE *stream, struct kakoune_options *const kakoune)
 {
     fprintf(stream, "tabstop:            ");
     if (kakoune->tabstop >= 0) {
@@ -226,7 +231,7 @@ print_kakoune_options(FILE *stream, struct kakoune_options *kakoune)
 }
 
 void
-first_operation(struct kakoune_options *kakoune)
+first_operation(struct kakoune_options *const kakoune)
 {
     int difference_len = 1;
     if (strcmp(kakoune->hook_param, "<esc>") == 0) {
@@ -246,14 +251,14 @@ remove-hooks window replace-hook \n\
             kakoune->tabstop,
             0
         );
-        int previous_len = strlen(previous_expand);
+        const int previous_len = strlen(previous_expand);
         free(previous_expand);
         char *current_expand = expand_tab(
             kakoune->current_line,
             kakoune->tabstop,
             0
         );
-        int current_len = strlen(current_expand);
+        const int current_len = strlen(current_expand);
         free(current_expand);
         difference_len = current_len - previous_len;
     }
@@ -267,7 +272,7 @@ execute-keys -draft 'h<a-h>|expand -t %d<ret>' \n\
 }
 
 void
-second_operation(struct kakoune_options *kakoune)
+second_operation(struct kakoune_options *const kakoune)
 {
     if (strcmp(kakoune->hook_param, "<esc>") == 0) {
         return;
@@ -299,7 +304,7 @@ try %%{                                                \n\
 }
 
 void
-third_operation(struct kakoune_options *kakoune)
+third_operation(struct kakoune_options *const kakoune)
 {
     if (strcmp(kakoune->hook_param, "<esc>") == 0) {
         return;
@@ -325,11 +330,11 @@ third_operation(struct kakoune_options *kakoune)
         free(current_expand);
         tab_len = len_with_space - len_with_tab + 1;
     }
-    char remove_previous_blank[] =
+    const char remove_previous_blank[] =
         "try %{ execute-keys -draft 'h<a-h>s\\h+\\z<ret>d' }";
-    char check_new_line[] =
+    const char check_new_line[] =
         "try %{ execute-keys -draft '<a-x>s\\h+$<ret>d' }";
-    char check_prev_line[] =
+    const char check_prev_line[] =
         "try %{ execute-keys -draft '<a-l>s\\A\\h+<ret>d' }";
     if (
         regex_string(
@@ -338,9 +343,9 @@ third_operation(struct kakoune_options *kakoune)
         ) > 0
     ) {
         if (kakoune->difference > 0) {
-            int line_remaining =
+            const int line_remaining =
                 len_with_tab - kakoune->cursor_char_column;
-            int real_remaining =
+            const int real_remaining =
                 kakoune->difference < line_remaining
                 ?
                 kakoune->difference
@@ -365,7 +370,7 @@ try %%{                             \n\
                 }
             }
         } else if (kakoune->difference < 0) {
-            int number_space = -kakoune->difference - 1;
+            const int number_space = -kakoune->difference - 1;
             const char execute_key_start[] = "ya";
             const char execute_key_space[] = "<space>";
             const char execute_key_end[] = "<esc>pr<space>";
@@ -451,7 +456,7 @@ main (int argc, char *argv[])
         fprintf(stderr, "HOME not set\n");
         free_kakoune_exit(&kakoune, EXIT_FAILURE);
     }
-    char relative_file[] = "/replace-mode-c-out";
+    const char relative_file[] = "/replace-mode-c-out";
     char *file_path = (char *)malloc(sizeof(char) * (
         strlen(home_env) + strlen(relative_file) + 1
     ));
