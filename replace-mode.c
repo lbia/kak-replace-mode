@@ -11,7 +11,7 @@
 <0 error
 */
 int
-regex_string(char *target, char *string)
+regex_string(const char *target, const char *string)
 {
     regex_t regex;
     int return_value = -1;
@@ -52,7 +52,7 @@ column_init == 0 expand -t {tabsize}
 column_init != 0 expand -t {column_init},+{tabsize}
 */
 char *
-expand_tab(char *original, int tabsize, int column_init)
+expand_tab(const char *original, int tabsize, int column_init)
 {
     int original_len = strlen(original);
     int expand_len = 2 * original_len;
@@ -287,7 +287,11 @@ second_operation(struct kakoune_options *kakoune)
         start = kakoune->tabstop;
     }
     printf("\
-execute-keys -draft 'l<a-l>|expand -t %d,+%d<ret>' \n\
+try %%{                                                \n\
+    execute-keys -draft 's\\n<ret>'                    \n\
+} catch %%{                                            \n\
+    execute-keys -draft 'l<a-l>|expand -t %d,+%d<ret>' \n\
+}                                                      \n\
 ",
         start,
         kakoune->tabstop
@@ -319,7 +323,7 @@ third_operation(struct kakoune_options *kakoune)
         );
         len_with_space = strlen(current_expand);
         free(current_expand);
-        tab_len = len_with_space - len_with_tab;
+        tab_len = len_with_space - len_with_tab + 1;
     }
     char remove_previous_blank[] =
         "try %{ execute-keys -draft 'h<a-h>s\\h+\\z<ret>d' }";
@@ -345,12 +349,12 @@ third_operation(struct kakoune_options *kakoune)
             ;
             for (i = 0; i < real_remaining; i++) {
                 printf("\
-%s                                 \n\
-try %%{                            \n\
-    execute-keys -draft 's\n<ret>' \n\
-} catch %%{                        \n\
-    execute-keys -draft 'i<del>'   \n\
-}                                  \n\
+%s                                  \n\
+try %%{                             \n\
+    execute-keys -draft 's\\n<ret>' \n\
+} catch %%{                         \n\
+    execute-keys -draft 'i<del>'    \n\
+}                                   \n\
 ",
                     check_new_line
                 );
@@ -362,13 +366,14 @@ try %%{                            \n\
             }
         } else if (kakoune->difference < 0) {
             int number_space = -kakoune->difference - 1;
-            char execute_key_start[] = "ya";
-            char execute_key_space[] = "<space>";
-            char execute_key_end[] = "<esc>p";
+            const char execute_key_start[] = "ya";
+            const char execute_key_space[] = "<space>";
+            const char execute_key_end[] = "<esc>pr<space>";
             char *execute_key = (char *)malloc(sizeof(char) * (
                 strlen(execute_key_start) +
                 number_space * strlen(execute_key_space) +
-                strlen(execute_key_end)
+                strlen(execute_key_end) +
+                1
             ));
             execute_key[0] = '\0';
             strcat(execute_key, execute_key_start);
@@ -379,10 +384,9 @@ try %%{                            \n\
             printf("\
 %s                                       \n\
 try %%{                                  \n\
-    execute-keys -draft 's\n<ret>'       \n\
+    execute-keys -draft 's\\n<ret>'      \n\
 } catch %%{                              \n\
     execute-keys -draft '%s'             \n\
-    execute-keys -draft 'r<space>'       \n\
 }                                        \n\
 ",
                 check_new_line,
@@ -449,7 +453,7 @@ main (int argc, char *argv[])
     }
     char relative_file[] = "/replace-mode-c-out";
     char *file_path = (char *)malloc(sizeof(char) * (
-        strlen(home_env) + strlen(relative_file)
+        strlen(home_env) + strlen(relative_file) + 1
     ));
     file_path[0] = '\0';
     strcat(file_path, home_env);
@@ -460,7 +464,7 @@ main (int argc, char *argv[])
 
     operation = 0;
     for (i = 1; i < argc; i++) {
-        char *param = argv[i];
+        const char *param = argv[i];
         if (strcmp(param, "-1") == 0) {
             operation = 1;
         } else if (strcmp(param, "-2") == 0) {
