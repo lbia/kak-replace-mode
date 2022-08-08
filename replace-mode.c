@@ -9,12 +9,10 @@
 /* setlocale */
 /* #include <locale.h> */
 
-/* TODO: expand, wc -m */
-
 /*
- * >0 found
- * =0 not found
- * <0 error
+>0 found
+=0 not found
+<0 error
 */
 int
 regex_string(char *target, char *string)
@@ -41,6 +39,50 @@ regex_string(char *target, char *string)
     }
     regfree(&regex);
     return return_value;
+}
+
+void
+increment_realloc(char **string, int *size, int *index)
+{
+    (*index)++;
+    if (*index >= *size) {
+        *size *= 2;
+        *string = (char *)realloc(*string, *size);
+    }
+}
+
+/*
+column_init == 0 expand -t {tabsize}
+column_init != 0 expand -t {column_init},+{tabsize}
+*/
+char *
+expand_tab(char *original, int tabsize, int column_init)
+{
+    int original_len = strlen(original);
+    int expand_len = 2 * original_len;
+    char *expand = (char *)malloc(expand_len);
+    int o;
+    int e;
+    for (
+        o = 0, e = 0;
+        o < original_len;
+        o++, increment_realloc(&expand, &expand_len, &e)
+    ) {
+        if (original[o] != '\t') {
+            expand[e] = original[o];
+        } else {
+            int current_tab =
+                tabsize - (e + tabsize - column_init) % tabsize;
+            int space;
+            for (space = 0; space < current_tab - 1; space++) {
+                expand[e] = ' ';
+                increment_realloc(&expand, &expand_len, &e);
+            }
+            expand[e] = ' ';
+        }
+    }
+    expand[e] = '\0';
+    return expand;
 }
 
 struct kakoune_options {
@@ -76,6 +118,19 @@ free_kakoune_exit(struct kakoune_options *kakoune, int exit_status)
 {
     free_kakoune_options(kakoune);
     exit(exit_status);
+}
+
+void
+check_kakoune_not_null(struct kakoune_options *kakoune)
+{
+    if (
+        kakoune->hook_param == NULL ||
+        kakoune->char_selection == NULL ||
+        kakoune->current_line == NULL ||
+        kakoune->previous_line == NULL
+    ) {
+        free_kakoune_exit(kakoune, EXIT_FAILURE);
+    }
 }
 
 void
@@ -123,7 +178,7 @@ set_kakoune_int(
     if (*i + 1 < argc) {
         (*i)++;
         /* if error strtol return 0 */
-        *option = (int) strtol(argv[*i], (char **)NULL, 10);
+        *option = (int)strtol(argv[*i], (char **)NULL, 10);
     } else {
         fprintf(stderr, "error: int %s not specified\n", argv[*i]);
         free_kakoune_exit(kakoune, EXIT_FAILURE);
@@ -173,53 +228,204 @@ print_kakoune_options(struct kakoune_options *kakoune)
 void
 first_operation(struct kakoune_options *kakoune)
 {
-    if (kakoune->hook_param == NULL) {
-        fprintf(stderr, "error: hook-param is null\n");
-        free_kakoune_exit(kakoune, EXIT_FAILURE);
-    }
-    /* int difference = 1; */
+    int difference_len = 1;
     if (strcmp(kakoune->hook_param, "<esc>") == 0) {
         printf("\
-change-colors-change-mode-true        \n\
-set-normal-colors                     \n\
-remove-hooks window replace-hook      \n\
-");
+change-colors-change-mode-true   \n\
+set-normal-colors                \n\
+remove-hooks window replace-hook \n\
+"
+    );
         return;
     } else if (regex_string(
         "^<(((a|c)-.)|(backspace)|(del)|(tab))>$",
         kakoune->hook_param
     ) > 0) {
-/*
-        prev_len="$(
-            printf "%s" \
-                "$kak_opt_replace_hook_prev_line" |
-            expand -t "$kak_opt_tabstop" |
-            wc -m
-        )"
-        curr_len="$(
-            printf "%s" \
-                "$kak_opt_replace_hook_curr_line" |
-            expand -t "$kak_opt_tabstop" |
-            wc -m
-        )"
-        difference_len="$(( curr_len - prev_len ))"
-*/
+        char *previous_expand = expand_tab(
+            kakoune->previous_line,
+            kakoune->tabstop,
+            0
+        );
+        int previous_len = strlen(previous_expand);
+        free(previous_expand);
+        char *current_expand = expand_tab(
+            kakoune->current_line,
+            kakoune->tabstop,
+            0
+        );
+        int current_len = strlen(current_expand);
+        free(current_expand);
+        difference_len = current_len - previous_len;
     }
+    printf("\
+set-option window replace_hook_difference %d   \n\
+execute-keys -draft 'h<a-h>|expand -t %d<ret>' \n\
+",
+        difference_len,
+        kakoune->tabstop
+    );
 }
 
 void
 second_operation(struct kakoune_options *kakoune)
 {
-    printf("starting second operation\n");
+    if (strcmp(kakoune->hook_param, "<esc>") == 0) {
+        return;
+    }
+    int start;
+    if (strcmp(kakoune->char_selection, "\t") == 0) {
+        start = kakoune->tabstop - (
+            (
+                kakoune->cursor_char_column +
+                kakoune->tabstop -
+                kakoune->difference
+            )
+            %
+            kakoune->tabstop
+        );
+    } else {
+        start = kakoune->tabstop;
+    }
+    printf("\
+execute-keys -draft 'l<a-l>|expand -t %d,+%d<ret>' \n\
+",
+        start,
+        kakoune->tabstop
+    );
 }
 
 void
 third_operation(struct kakoune_options *kakoune)
 {
-    printf("starting third operation\n");
+    if (strcmp(kakoune->hook_param, "<esc>") == 0) {
+        return;
+    }
+    int i;
+    int tab_len = -1;
+    int len_with_tab = 0;
+    int len_with_space = 0;
+    if (
+        strcmp(kakoune->char_selection, "\t") == 0 ||
+        regex_string(
+            "^<(a|c)-.>$",
+            kakoune->hook_param
+        ) > 0
+    ) {
+        len_with_tab = strlen(kakoune->current_line);
+        char *current_expand = expand_tab(
+            kakoune->current_line,
+            kakoune->tabstop,
+            0
+        );
+        len_with_space = strlen(current_expand);
+        free(current_expand);
+        tab_len = len_with_space - len_with_tab;
+    }
+    char remove_previous_blank[] =
+        "try %{ execute-keys -draft 'h<a-h>s\\h+\\z<ret>d' }";
+    char check_new_line[] =
+        "try %{ execute-keys -draft '<a-x>s\\h+$<ret>d' }";
+    char check_prev_line[] =
+        "try %{ execute-keys -draft '<a-l>s\\A\\h+<ret>d' }";
+    if (
+        regex_string(
+            "^<(a|c)-.>$",
+            kakoune->hook_param
+        ) > 0
+    ) {
+        if (kakoune->difference > 0) {
+            int line_remaining =
+                len_with_tab - kakoune->cursor_char_column;
+            int real_remaining =
+                kakoune->difference < line_remaining
+                ?
+                kakoune->difference
+                :
+                line_remaining
+            ;
+            for (i = 0; i < real_remaining; i++) {
+                printf("\
+%s                                 \n\
+try %%{                            \n\
+    execute-keys -draft 's\n<ret>' \n\
+} catch %%{                        \n\
+    execute-keys -draft 'i<del>'   \n\
+}                                  \n\
+",
+                    check_new_line
+                );
+            }
+            if (tab_len > 1) {
+                for (i = 0; i < tab_len - 1; i++) {
+                    printf("execute-keys -draft 'a<space>'\n");
+                }
+            }
+        } else if (kakoune->difference < 0) {
+            int number_space = -kakoune->difference - 1;
+            char execute_key_start[] = "ya";
+            char execute_key_space[] = "<space>";
+            char execute_key_end[] = "<esc>p";
+            char *execute_key = (char *)malloc(sizeof(char) * (
+                strlen(execute_key_start) +
+                number_space * strlen(execute_key_space) +
+                strlen(execute_key_end)
+            ));
+            execute_key[0] = '\0';
+            strcat(execute_key, execute_key_start);
+            for (i = 0; i < number_space; i++) {
+                strcat(execute_key, execute_key_space);
+            }
+            strcat(execute_key, execute_key_end);
+            free(execute_key);
+            printf("\
+%s                                       \n\
+try %%{                                  \n\
+    execute-keys -draft 's\n<ret>'       \n\
+} catch %%{                              \n\
+    execute-keys -draft '${execute_key}' \n\
+    execute-keys -draft 'r<space>'       \n\
+}                                        \n\
+",
+                check_new_line
+            );
+        }
+    } else if (strcmp(kakoune->hook_param, "<backspace>") == 0) {
+        if (kakoune->difference < 0) {
+            for (i = 0; i < -kakoune->difference; i++) {
+                printf("execute-keys '<space><left>'\n");
+            }
+        } else if (kakoune->difference > 0) {
+            printf("%s\n", check_prev_line);
+        }
+    } else if (strcmp(kakoune->hook_param, "<del>") == 0) {
+        if (kakoune->difference < 0) {
+            for (i = 0; i < -kakoune->difference; i++) {
+                printf("execute-keys '<space>'\n");
+            }
+        } else if (kakoune->difference > 0) {
+            printf("%s\n", remove_previous_blank);
+        }
+    } else if (strcmp(kakoune->hook_param, "<tab>") == 0) {
+        for (i = 0; i < kakoune->difference; i++) {
+            printf("%s\nexecute-keys '<del>'\n", check_new_line);
+        }
+        if (tab_len > 1) {
+            for (i = 0; i < tab_len - 1; i++) {
+                printf("execute-keys '<space>'\n");
+            }
+        }
+    } else {
+        printf("%s\nexecute-keys '<del>'\n", check_new_line);
+        if (tab_len >= 1 && tab_len < kakoune->tabstop) {
+            for (i = 0; i < tab_len; i++) {
+                printf("execute-keys '<space>'\n");
+            }
+        }
+    }
 }
 
-int main (int argc, char *argv[])
+int
+main (int argc, char *argv[])
 {
     unsigned int i;
     unsigned int operation;
@@ -244,25 +450,40 @@ int main (int argc, char *argv[])
         } else if (strcmp(param, "-3") == 0) {
             operation = 3;
         } else if (strcmp(param, "--tabstop") == 0) {
-            set_kakoune_int(argc, argv, &i, &kakoune.tabstop, &kakoune);
+            set_kakoune_int(
+                argc, argv, &i, &kakoune.tabstop, &kakoune
+            );
         } else if (strcmp(param, "--cursor-char-column") == 0) {
-            set_kakoune_int(argc, argv, &i, &kakoune.cursor_char_column, &kakoune);
+            set_kakoune_int(
+                argc, argv, &i, &kakoune.cursor_char_column, &kakoune
+            );
         } else if (strcmp(param, "--difference") == 0) {
-            set_kakoune_int(argc, argv, &i, &kakoune.difference, &kakoune);
+            set_kakoune_int(
+                argc, argv, &i, &kakoune.difference, &kakoune
+            );
         } else if (strcmp(param, "--hook-param") == 0) {
-            set_kakoune_string(argc, argv, &i, &kakoune.hook_param, &kakoune);
+            set_kakoune_string(
+                argc, argv, &i, &kakoune.hook_param, &kakoune
+            );
         } else if (strcmp(param, "--char-selection") == 0) {
-            set_kakoune_string(argc, argv, &i, &kakoune.char_selection, &kakoune);
+            set_kakoune_string(
+                argc, argv, &i, &kakoune.char_selection, &kakoune
+            );
         } else if (strcmp(param, "--current-line") == 0) {
-            set_kakoune_string(argc, argv, &i, &kakoune.current_line, &kakoune);
+            set_kakoune_string(
+                argc, argv, &i, &kakoune.current_line, &kakoune
+            );
         } else if (strcmp(param, "--previous-line") == 0) {
-            set_kakoune_string(argc, argv, &i, &kakoune.previous_line, &kakoune);
+            set_kakoune_string(
+                argc, argv, &i, &kakoune.previous_line, &kakoune
+            );
         } else {
             fprintf(stderr, "error: %s not recognized\n", param);
             free_kakoune_exit(&kakoune, EXIT_FAILURE);
         }
     }
     /* print_kakoune_options(&kakoune); */
+    check_kakoune_not_null(&kakoune);
     switch (operation) {
         case 1:
             first_operation(&kakoune);
@@ -278,4 +499,6 @@ int main (int argc, char *argv[])
             free_kakoune_exit(&kakoune, EXIT_FAILURE);
     }
     free_kakoune_exit(&kakoune, EXIT_SUCCESS);
+    /* make compiler happy */
+    return EXIT_SUCCESS;
 }
