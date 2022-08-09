@@ -3,6 +3,9 @@
 [kakoune](https://github.com/mawww/kakoune)
 plugin that adds a vim-style replace mode
 
+inspired from
+[tomKPZ/replace-mode.kak](https://github.com/tomKPZ/replace-mode.kak)
+
 implemented both in posix sh and ansi c
 
 similar to fisical insert key in other programs and vim replace-mode
@@ -34,7 +37,9 @@ always the same lenght
 ### installation
 
 clone this repository into a folder (possibly inside kakoune config folder)
-
+```
+git clone https://git.lbia.xyz/kak-replace-mode.git
+```
 by default `$kak_config/plugin/kak-replace-mode`
 
 you need a c89(ansi)-compatible c compiler
@@ -68,5 +73,5 @@ or simply link `replace-mode-c.kak` or `replace-mode-sh.kak` to
 
 otherwise if using [plug.kak](https://github.com/andreyorst/plug.kak):
 ```
-plug 'lbia/kak-replace-mode'
+plug "https://git.lbia.xyz/kak-replace-mode.git"
 ```
