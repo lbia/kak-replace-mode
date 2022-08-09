@@ -24,6 +24,12 @@ define-command add-replace-hook -docstring "add replace hook" %{
     set-replace-colors
     update-replace-hook-char
     update-replace-hook-prev-line
+    nop %sh{
+        replace_mode_bin="$kak_opt_replace_mode_path/replace-mode"
+        if [ ! -f "$replace_mode_bin" ]; then
+            make -C "$kak_opt_replace_mode_path"
+        fi
+    }
     hook -group replace-hook window InsertKey .* %{
         update-replace-hook-curr-line
         evaluate-commands %sh{

@@ -2,7 +2,7 @@
 
 # inspiration from https://github.com/tomKPZ/replace-mode.kak
 
-# replace mode implemented both in sh and c
+# replace mode implemented both in posix sh and ansi c
 # similar to fisical insert key in other programs and vim replace-mode
 # all done inside insert mode so there are all the key bindings and
 # completions
