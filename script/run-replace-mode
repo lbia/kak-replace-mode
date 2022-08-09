@@ -1,6 +1,11 @@
 #!/bin/sh
 
-kak_opt_replace_mode_bin_path="./replace-mode"
+if [ "$0" = "./$(basename "$0")" ]; then
+    replace_mode_path=".."
+else
+    replace_mode_path="$(dirname "$(dirname "$0")")"
+fi
+kak_opt_replace_mode_bin_path="$replace_mode_path/replace-mode"
 
 kak_opt_tabstop=4
 kak_cursor_char_column=2

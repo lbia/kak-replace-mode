@@ -1,11 +1,11 @@
 ansi:
-	c89 -o replace-mode replace-mode.c -Wall
+	c89 -Wall -o replace-mode replace-mode.c
 c89:
-	c89 -o replace-mode-c89 replace-mode.c -Wall
+	c89 -Wall -o replace-mode-c89 replace-mode.c
 c99:
-	c99 -o replace-mode-c99 replace-mode.c -Wall
+	c99 -Wall -o replace-mode-c99 replace-mode.c
 gcc:
-	gcc -o replace-mode-gcc replace-mode.c -Wall
+	gcc -Wall -o replace-mode-gcc replace-mode.c
 all: ansi c89 c99 gcc
 clear:
 	rm -f \

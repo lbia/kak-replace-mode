@@ -279,16 +279,19 @@ second_operation(struct kakoune_options *const kakoune)
         return;
     }
     int start;
-    if (strcmp(kakoune->char_selection, "\t") == 0) {
-        start = kakoune->tabstop - (
+    if (strcmp(kakoune->char_selection, "\t") != 0) {
+        start =
+            kakoune->tabstop -
             (
-                kakoune->cursor_char_column +
-                kakoune->tabstop -
-                kakoune->difference
+                (
+                    kakoune->cursor_char_column +
+                    kakoune->tabstop -
+                    kakoune->difference
+                )
+                %
+                kakoune->tabstop
             )
-            %
-            kakoune->tabstop
-        );
+        ;
     } else {
         start = kakoune->tabstop;
     }
@@ -457,14 +460,14 @@ main (int argc, char **argv)
         fprintf(stderr, "HOME not set\n");
         free_kakoune_exit(&kakoune, EXIT_FAILURE);
     }
-    const char *relative_file = "/replace-mode-c-out";
+    const char *const relative_file = "/c-replace-mode-out";
     char *file_path = (char *)malloc(sizeof(char) * (
         strlen(home_env) + strlen(relative_file) + 1
     ));
     file_path[0] = '\0';
     strcat(file_path, home_env);
     strcat(file_path, relative_file);
-    file = fopen(file_path, "w");
+    file = fopen(file_path, "a");
     free(file_path);
     */
 

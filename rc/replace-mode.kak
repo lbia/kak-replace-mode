@@ -64,21 +64,20 @@ define-command change-colors-change-mode-false -docstring "do not change colors 
 declare-option -hidden str replace_hook_char
 define-command -hidden update-replace-hook-char %{
     evaluate-commands -draft -itersel %{
-        execute-keys <esc>
         set-option window replace_hook_char %reg{dot}
     }
 }
 declare-option -hidden str replace_hook_prev_line
 define-command -hidden update-replace-hook-prev-line %{
     evaluate-commands -draft -itersel %{
-        execute-keys <esc><a-x>
+        execute-keys <a-x>
         set-option window replace_hook_prev_line %reg{dot}
     }
 }
 declare-option -hidden str replace_hook_curr_line
 define-command -hidden update-replace-hook-curr-line %{
     evaluate-commands -draft -itersel %{
-        execute-keys <esc><a-x>
+        execute-keys <a-x>
         set-option window replace_hook_curr_line %reg{dot}
     }
 }
