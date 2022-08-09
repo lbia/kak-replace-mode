@@ -2,7 +2,7 @@
 
 evaluate-commands %sh{
     if [ -z "$kak_opt_replace_mode_path" ]; then
-        replace_mode_path="${kak_config:-$HOME/.config/kak}/plugins/replace-mode.kak"
+        replace_mode_path="${kak_config:-$HOME/.config/kak}/plugins/kak-replace-mode"
         printf "%s" "
             declare-option -hidden str replace_mode_path
             set-option global replace_mode_path ${replace_mode_path}

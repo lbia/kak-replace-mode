@@ -2,9 +2,13 @@
 
 # inspiration from https://github.com/tomKPZ/replace-mode.kak
 
-# replace mode, similar to fisical insert key in other programs
-# all done inside insert mode so there are all key bindings and completions
-# sometimes a bit slow, should rewrite in c
+# replace mode implemented both in sh and c
+# similar to fisical insert key in other programs and vim replace-mode
+# all done inside insert mode so there are all the key bindings and
+# completions
+# sometimes a bit slow (if a key is held down), even the implementation in c
+# (the slow part is on the kakoune side, in the sense that obviously
+# executing kakoune commands is slower than a native implementation)
 # when in single selection should function "perfectly" in the sense that the
 # line should always remain the same lenght even with tabs, tabs in strange
 # places, moving through completion menu etc (if not there is some bug)
