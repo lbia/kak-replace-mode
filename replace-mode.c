@@ -42,7 +42,8 @@ increment_realloc(char **const string, int *const size, int *const index)
 {
     (*index)++;
     if (*index >= *size) {
-        *size *= 2;
+        const int scale_factor = 2;
+        *size *= scale_factor;
         *string = (char *)realloc(*string, *size);
     }
 }
@@ -137,7 +138,7 @@ check_kakoune_not_null(struct kakoune_options *const kakoune)
 void
 set_kakoune_string(
     int argc,
-    char *argv[],
+    char **argv,
     unsigned int *const i,
     char **const option,
     struct kakoune_options *const kakoune
@@ -152,7 +153,7 @@ set_kakoune_string(
         if (*option != NULL) {
             free(*option);
         }
-        const char *param = argv[*i];
+        const char *const param = argv[*i];
         const int len_param = strlen(param);
         if (len_param > 0) {
             *option = malloc(len_param + 1);
@@ -170,7 +171,7 @@ set_kakoune_string(
 void
 set_kakoune_int(
     int argc,
-    char *argv[],
+    char **argv,
     unsigned int *const i,
     int *const option,
     struct kakoune_options *const kakoune
@@ -330,11 +331,11 @@ third_operation(struct kakoune_options *const kakoune)
         free(current_expand);
         tab_len = len_with_space - len_with_tab + 1;
     }
-    const char remove_previous_blank[] =
+    const char *const remove_previous_blank =
         "try %{ execute-keys -draft 'h<a-h>s\\h+\\z<ret>d' }";
-    const char check_new_line[] =
+    const char *const check_new_line =
         "try %{ execute-keys -draft '<a-x>s\\h+$<ret>d' }";
-    const char check_prev_line[] =
+    const char *const check_prev_line =
         "try %{ execute-keys -draft '<a-l>s\\A\\h+<ret>d' }";
     if (
         regex_string(
@@ -371,9 +372,9 @@ try %%{                             \n\
             }
         } else if (kakoune->difference < 0) {
             const int number_space = -kakoune->difference - 1;
-            const char execute_key_start[] = "ya";
-            const char execute_key_space[] = "<space>";
-            const char execute_key_end[] = "<esc>pr<space>";
+            const char *const execute_key_start = "ya";
+            const char *const execute_key_space = "<space>";
+            const char *const execute_key_end = "<esc>pr<space>";
             char *execute_key = (char *)malloc(sizeof(char) * (
                 strlen(execute_key_start) +
                 number_space * strlen(execute_key_space) +
@@ -435,7 +436,7 @@ try %%{                                  \n\
 }
 
 int
-main (int argc, char *argv[])
+main (int argc, char **argv)
 {
     unsigned int i;
     unsigned int operation;
@@ -451,12 +452,12 @@ main (int argc, char *argv[])
     };
 
     /*
-    char *home_env = getenv("HOME");
+    const char *const home_env = getenv("HOME");
     if (!home_env) {
         fprintf(stderr, "HOME not set\n");
         free_kakoune_exit(&kakoune, EXIT_FAILURE);
     }
-    const char relative_file[] = "/replace-mode-c-out";
+    const char *relative_file = "/replace-mode-c-out";
     char *file_path = (char *)malloc(sizeof(char) * (
         strlen(home_env) + strlen(relative_file) + 1
     ));
@@ -469,7 +470,7 @@ main (int argc, char *argv[])
 
     operation = 0;
     for (i = 1; i < argc; i++) {
-        const char *param = argv[i];
+        const char *const param = argv[i];
         if (strcmp(param, "-1") == 0) {
             operation = 1;
         } else if (strcmp(param, "-2") == 0) {

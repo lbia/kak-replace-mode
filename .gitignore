@@ -1,1 +1,4 @@
 replace-mode
+replace-mode-c89
+replace-mode-c99
+replace-mode-gcc
